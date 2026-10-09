@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle Predictive Maintenance - Admin & IA</title>
+    <!-- Tailwind CSS pour un design ultra-moderne -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js pour la visualisation graphique de la régression -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons pour les icônes modernes -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            900: '#115e59',
+                        },
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-teal-500/10 p-2 rounded-lg border border-teal-500/30">
+                    <i data-lucide="database" class="w-6 h-6 text-teal-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight">Oracle Predict <span class="text-teal-400 font-medium">DBA</span></h1>
+                    <p class="text-xs text-slate-400">Projet : Administration Oracle & IA</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex h-3 w-3 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+                </span>
+                <span class="text-xs text-slate-300 font-medium bg-slate-800 px-2.5 py-1 rounded-full border border-slate-750">
+                    Oracle VM Connecté (Simulé)
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-800 mb-8 space-x-2">
+            <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="px-5 py-3 text-sm font-medium border-b-2 border-teal-400 text-teal-400 transition-all flex items-center space-x-2">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                <span>Tableau de Bord</span>
+            </button>
+            <button onclick="switchTab('python-code')" id="btn-tab-python-code" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                <i data-lucide="code-2" class="w-4 h-4"></i>
+                <span>Script de Liaison (Python / VS Code)</span>
+            </button>
+            <button onclick="switchTab('oracle-console')" id="btn-tab-oracle-console" class="px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2">
+                <i data-lucide="terminal" class="w-4 h-4"></i>
+                <span>Console SQL Oracle</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: Tableau de Bord -->
+        <div id="tab-dashboard" class="space-y-6">
+            <!-- Top Alert Banner -->
+            <div id="alert-banner" class="p-4 rounded-xl border flex items-start space-x-4 transition-all duration-500">
+                <div id="alert-icon-container" class="p-2 rounded-lg">
+                    <!-- Icon will be injected by JS -->
+                </div>
+                <div class="flex-grow">
+                    <h3 class="font-bold text-sm tracking-wide uppercase" id="alert-title">Diagnostic en cours...</h3>
+                    <p class="text-sm text-slate-300 mt-1" id="alert-desc">Analyse des données d'historique en cours via régression linéaire.</p>
+                </div>
+                <button onclick="triggerRemediation()" id="btn-remediate" class="hidden bg-teal-500 hover:bg-teal-600 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow-lg shadow-teal-500/20 transition-all uppercase tracking-wider">
+                    Auto-Remédier (Resize TS)
+                </button>
+            </div>
+
+            <!-- Dashboard Grid Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Control Panel & Metrics -->
+                <div class="space-y-6 lg:col-span-1">
+                    <!-- Cards de statistiques clés -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                            <span class="text-xs text-slate-400 block mb-1">Capacité Actuelle</span>
+                            <span class="text-2xl font-bold" id="metric-capacity">50.00 MB</span>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                            <span class="text-xs text-slate-400 block mb-1">Dernière Mesure</span>
+                            <span class="text-2xl font-bold text-teal-400" id="metric-last-measure">38.20 MB</span>
+                        </div>
+                    </div>
+
+                    <!-- Paramètres Interactifs -->
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-6">
+                        <h2 class="font-bold text-sm text-slate-200 tracking-wider uppercase border-b border-slate-800 pb-3 flex items-center space-x-2">
+                            <i data-lucide="sliders" class="w-4 h-4 text-teal-400"></i>
+                            <span>Simulation de Charge (IA)</span>
+                        </h2>
+                        <!-- Slider 1 -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400">Vitesse d'écriture (MB/jour)</span>
+                                <span class="font-bold text-teal-400" id="val-growth">3.6 MB/j</span>
+                            </div>
+                            <input type="range" id="slider-growth" min="1" max="10" step="0.5" value="3.6" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+                        </div>
+                        <!-- Slider 2 -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-400">Bruit / Fluctuation (MB)</span>
+                                <span class="font-bold text-teal-400" id="val-noise">1.5 MB</span>
+                            </div>
+                            <input type="range" id="slider-noise" min="0" max="5" step="0.5" value="1.5" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-teal-400">
+                        </div>
+                        <!-- Information Box -->
+                        <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-xs text-slate-400 leading-relaxed">
+                            <span class="font-semibold text-slate-300 block mb-1">Moteur Mathématique :</span>
+                            La régression calcule en direct la droite d'ajustement : <code class="text-teal-400">Y = mX + b</code> pour déterminer le jour précis de la panne.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Visualizations -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Graphique Interactif -->
+                    <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="font-bold text-sm text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+                                <i data-lucide="trending-up" class="w-4 h-4 text-teal-400"></i>
+                                <span>Courbe Prédictive du Tablespace TS_ADMIN_IA</span>
+                            </h2>
+                            <span class="text-xs text-slate-400">Seuil de Saturation fixé à 50MB</span>
+                        </div>
+                        <div class="relative h-[320px] w-full">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Explanation Section -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+                    <div class="bg-purple-500/10 p-3 rounded-lg border border-purple-500/20 text-purple-400">
+                        <i data-lucide="function-square" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Pente calculée (m)</span>
+                        <span class="text-xl font-mono font-bold" id="math-slope">3.65</span>
+                        <span class="text-xs text-slate-400 block">Indique le taux d'écriture moyen</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+                    <div class="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20 text-blue-400">
+                        <i data-lucide="binary" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">R-squared Score (Précision)</span>
+                        <span class="text-xl font-mono font-bold" id="math-r2">0.992</span>
+                        <span class="text-xs text-slate-400 block">Proximité des points à la droite</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center space-x-4">
+                    <div class="bg-amber-500/10 p-3 rounded-lg border border-amber-500/20 text-amber-400">
+                        <i data-lucide="hourglass" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 block">Time-To-Failure (TTF)</span>
+                        <span class="text-xl font-mono font-bold" id="math-ttf">Jour 13.2</span>
+                        <span class="text-xs text-slate-400 block">Temps restant avant saturation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Python Code Bridge -->
+        <div id="tab-python-code" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Le Pont de Liaison : Python ⇄ Oracle Database</h2>
+                        <p class="text-xs text-slate-400">Ce script tourne dans VS Code. Il se connecte à Oracle, extrait l'historique et calcule le modèle de ML.</p>
+                    </div>
+                    <span class="bg-slate-800 text-teal-400 border border-slate-700 px-3 py-1 rounded-md text-xs font-mono">
+                        bridge.py
+                    </span>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 overflow-x-auto">
+                    <pre class="text-xs font-mono text-slate-300 leading-relaxed">
+<span class="text-emerald-400"># 1. Importation des bibliothèques nécessaires</span>
+<span class="text-teal-400">import</span> oracledb
+<span class="text-teal-400">import</span> pandas <span class="text-teal-400">as</span> pd
+<span class="text-teal-400">import</span> numpy <span class="text-teal-400">as</span> np
+<span class="text-teal-400">from</span> sklearn.linear_model <span class="text-teal-400">import</span> LinearRegression
+
+<span class="text-emerald-400"># 2. Informations de connexion à la base Oracle VM (Docker / Local)</span>
+conn_params = {
+    <span class="text-amber-300">"user"</span>: <span class="text-amber-300">"system"</span>,
+    <span class="text-amber-300">"password"</span>: <span class="text-amber-300">"votre_mot_de_passe"</span>,
+    <span class="text-amber-300">"dsn"</span>: <span class="text-amber-300">"localhost:1521/xe"</span>  <span class="text-emerald-400"># Mettez votre SID/Service Name</span>
+}
+
+<span class="text-teal-400">try</span>:
+    <span class="text-emerald-400"># Connexion à Oracle Database</span>
+    connection = oracledb.connect(**conn_params)
+    cursor = connection.cursor()
+    
+    <span class="text-emerald-400"># Extraction des métriques insérées par oracle_setup.sql</span>
+    query = <span class="text-amber-300">"""
+        SELECT id_mesure, used_space_mb, max_space_mb 
+        FROM ts_space_history 
+        WHERE tablespace_name = 'TS_ADMIN_IA'
+        ORDER BY id_mesure ASC
+    """</span>
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    
+    <span class="text-emerald-400"># Conversion en DataFrame Pandas</span>
+    df = pd.DataFrame(rows, columns=[<span class="text-amber-300">'Jour'</span>, <span class="text-amber-300">'Espace_Utilise'</span>, <span class="text-amber-300">'Max_Espace'</span>])
+    
+    <span class="text-emerald-400"># 3. Entraînement du modèle de Machine Learning (Régression Linéaire)</span>
+    X = df[[<span class="text-amber-300">'Jour'</span>]].values
+    y = df[<span class="text-amber-300">'Espace_Utilise'</span>].values
+    
+    model = LinearRegression()
+    model.fit(X, y)
+    
+    m = model.coef_[0]
+    b = model.intercept_
+    
+    <span class="text-emerald-400"># 4. Calcul du Time-To-Failure (TTF) pour la limite de 50 MB</span>
+    limite = df[<span class="text-amber-300">'Max_Espace'</span>].iloc[-1]
+    jour_saturation = (limite - b) / m
+    
+    print(f<span class="text-amber-300">"Vitesse d'écriture : {m:.2f} MB / jour"</span>)
+    print(f<span class="text-amber-300">"Alerte : Saturation prévue au Jour {jour_saturation:.2f}"</span>)
+    
+<span class="text-teal-400">except</span> Exception <span class="text-teal-400">as</span> e:
+    print(<span class="text-amber-300">"Erreur de liaison :"</span>, e)
+<span class="text-teal-400">finally</span>:
+    <span class="text-teal-400">if</span> 'connection' <span class="text-teal-400">in</span> locals():
+        connection.close()
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Oracle SQL Console -->
+        <div id="tab-oracle-console" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-100">Simulateur de Requête DBA Oracle</h2>
+                        <p class="text-xs text-slate-400">Les requêtes SQL exécutées directement sur le dictionnaire de données Oracle pour alimenter l'interface.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-950 p-4 rounded-lg border border-slate-800">
+                        <span class="text-xs text-teal-400 font-mono block mb-2">-- Requête d'extraction en temps réel</span>
+                        <pre class="text-xs font-mono text-slate-300 leading-relaxed">
+SELECT 
+    b.tablespace_name,
+    ROUND(SUM(b.bytes) / 1024 / 1024, 2) as size_mb,
+    ROUND(SUM(b.bytes - NVL(f.bytes, 0)) / 1024 / 1024, 2) as used_mb,
+    ROUND((SUM(b.bytes - NVL(f.bytes, 0)) / SUM(b.bytes)) * 100, 2) as pct_used
+FROM dba_data_files b
+LEFT JOIN (
+    SELECT tablespace_name, file_id, SUM(bytes) as bytes 
+    FROM dba_free_space 
+    GROUP BY tablespace_name, file_id
+) f ON b.tablespace_name = f.tablespace_name AND b.file_id = f.file_id
+GROUP BY b.tablespace_name;
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Toast / Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-teal-500 text-slate-950 font-bold px-5 py-3 rounded-xl shadow-2xl shadow-teal-500/20 transform translate-y-24 opacity-0 transition-all duration-300 flex items-center space-x-3 border border-teal-300 z-50">
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <span id="toast-msg">Remédiation réussie !</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-850 bg-slate-900 py-6 mt-12 text-center text-xs text-slate-450">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <span class="text-slate-500">Module : Administration Oracle et Intelligence Artificielle &copy; 2026</span>
+            <span class="text-slate-500">Développé pour la soutenance de projet de fin de module</span>
+        </div>
+    </footer>
+
+    <!-- Scripts pour faire tourner la logique de simulation -->
+    <script>
+        // Initialisation des icônes Lucide
+        lucide.createIcons();
+
+        // Données d'origine basées sur les enregistrements d'Oracle
+        const base_space_history = [5.2, 8.7, 12.1, 14.8, 19.3, 22.1, 26.5, 31.0, 33.4, 38.2];
+        let max_capacity = 50.0;
+        let is_remediated = false;
+
+        // Variables pour le graphique
+        let predictionChart = null;
+
+        // Sliders
+        const sliderGrowth = document.getElementById('slider-growth');
+        const sliderNoise = document.getElementById('slider-noise');
+        const valGrowth = document.getElementById('val-growth');
+        const valNoise = document.getElementById('val-noise');
+
+        // Initialisation de la régression et du graphique
+        function calculateAndPlot() {
+            const growthRate = parseFloat(sliderGrowth.value);
+            const noiseLevel = parseFloat(sliderNoise.value);
+
+            // Mise à jour de l'affichage des sliders
+            valGrowth.innerText = `${growthRate.toFixed(1)} MB/j`;
+            valNoise.innerText = `${noiseLevel.toFixed(1)} MB`;
+
+            // Régénération dynamique des données avec fluctuation
+            let y_data = [];
+            for (let i = 0; i < 10; i++) {
+                // Point de départ réel et progression contrôlée par slider avec bruit
+                let predicted_point = 5.2 + (i * growthRate) + (Math.sin(i) * noiseLevel);
+                y_data.push(Math.max(1, parseFloat(predicted_point.toFixed(2))));
+            }
+
+            // Calculer la régression linéaire sur ces points (Mathématiquement en JS)
+            const n = y_data.length;
+            let sum_x = 0, sum_y = 0, sum_xy = 0, sum_xx = 0;
+            for (let i = 0; i < n; i++) {
+                let x = i + 1;
+                sum_x += x;
+                sum_y += y_data[i];
+                sum_xy += x * y_data[i];
+                sum_xx += x * x;
+            }
+
+            // Pente (m) et Ordonnée à l'origine (b)
+            const m = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+            const b = (sum_y - m * sum_x) / n;
+
+            // Calcul du score R² (Coefficient de corrélation)
+            const mean_y = sum_y / n;
+            let ss_tot = 0, ss_res = 0;
+            for (let i = 0; i < n; i++) {
+                let x = i + 1;
+                let fit = m * x + b;
+                ss_tot += Math.pow(y_data[i] - mean_y, 2);
+                ss_res += Math.pow(y_data[i] - fit, 2);
+            }
+            const r2 = 1 - (ss_res / ss_tot);
+
+            // Calcul de la projection future (Jours 11 à 15)
+            let labels = [];
+            let histData = [];
+            let regData = [];
+
+            // Données historiques (Jours 1 à 10)
+            for (let i = 1; i <= 10; i++) {
+                labels.push(`Jour ${i}`);
+                histData.push(y_data[i-1]);
+                regData.push(parseFloat((m * i + b).toFixed(2)));
+            }
+
+
+            for (let i = 11; i <= 15; i++) {
+                labels.push(`Jour ${i}`);
+                histData.push(null);
+                regData.push(parseFloat((m * i + b).toFixed(2)));
+            }
+
+            const jour_saturation = (max_capacity - b) / m;
+
+
+            document.getElementById('math-slope').innerText = `${m.toFixed(2)} MB/j`;
+            document.getElementById('math-r2').innerText = r2.toFixed(3);
+            document.getElementById('math-ttf').innerText = `Jour ${jour_saturation.toFixed(1)}`;
+            document.getElementById('metric-last-measure').innerText = `${y_data[9].toFixed(1)} MB`;
+
+
+            const alertBanner = document.getElementById('alert-banner');
+            const alertTitle = document.getElementById('alert-title');
+            const alertDesc = document.getElementById('alert-desc');
+            const alertIconContainer = document.getElementById('alert-icon-container');
+            const btnRemediate = document.getElementById('btn-remediate');
+
+            if (jour_saturation <= 12) {
+
+                alertBanner.className = "p-4 rounded-xl border flex items-start space-x-4 transition-all duration-300 bg-red-500/10 border-red-500/30 text-red-200";
+                alertIconContainer.className = "p-2 rounded-lg bg-red-500/20 text-red-400";
+                alertIconContainer.innerHTML = '<i data-lucide="alert-triangle" class="w-6 h-6"></i>';
+                alertTitle.innerText = "🚨 ALERTE CRITIQUE : SATURATION IMMINENTE";
+                alertDesc.innerText = `L'algorithme de régression prédit un crash disque au Jour ${jour_saturation.toFixed(1)}. Le tablespace de 50MB va saturer rapidement.`;
+                btnRemediate.classList.remove('hidden');
+            } else if (jour_saturation <= 14) {
+
+                alertBanner.className = "p-4 rounded-xl border flex items-start space-x-4 transition-all duration-300 bg-amber-500/10 border-amber-500/30 text-amber-200";
+                alertIconContainer.className = "p-2 rounded-lg bg-amber-500/20 text-amber-400";
+                alertIconContainer.innerHTML = '<i data-lucide="alert-circle" class="w-6 h-6"></i>';
+                alertTitle.innerText = "⚠️ ATTENTION : SURVEILLANCE PRÉDICTIVE ACTIVE";
+                alertDesc.innerText = `Saturation estimée au Jour ${jour_saturation.toFixed(1)}. Les administrateurs doivent anticiper un redimensionnement des fichiers de données.`;
+                btnRemediate.classList.remove('hidden');
+            } else {
+ 
+                alertBanner.className = "p-4 rounded-xl border flex items-start space-x-4 transition-all duration-300 bg-emerald-500/10 border-emerald-500/30 text-emerald-200";
+                alertIconContainer.className = "p-2 rounded-lg bg-emerald-500/20 text-emerald-400";
+                alertIconContainer.innerHTML = '<i data-lucide="shield-check" class="w-6 h-6"></i>';
+                alertTitle.innerText = "🛡️ SYSTÈME SAIN & PRÉVISIONS STABLES";
+                alertDesc.innerText = `Taux de croissance sous contrôle. Le tablespace est sécurisé, saturation prévue au-delà de l'horizon critique (Jour ${jour_saturation.toFixed(1)}).`;
+                btnRemediate.classList.add('hidden');
+            }
+            lucide.createIcons();
+
+
+            if (predictionChart) {
+                predictionChart.data.labels = labels;
+                predictionChart.data.datasets[0].data = histData;
+                predictionChart.data.datasets[1].data = regData;
+
+                predictionChart.options.plugins.annotation.annotations.line1.value = max_capacity;
+                predictionChart.update();
+            } else {
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+                predictionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Espace Réel (Oracle history)',
+                                data: histData,
+                                borderColor: '#14b8a6',
+                                backgroundColor: 'rgba(20, 184, 166, 0.15)',
+                                pointBackgroundColor: '#14b8a6',
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.2
+                            },
+                            {
+                                label: 'Modèle IA (Droite de Régression)',
+                                data: regData,
+                                borderColor: '#a855f7',
+                                borderDash: [6, 4],
+                                pointBackgroundColor: '#a855f7',
+                                pointRadius: function(context) {
+                                    return context.dataIndex >= 10 ? 4 : 0;
+                                },
+                                borderWidth: 2,
+                                fill: false,
+                                tension: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                min: 0,
+                                max: is_remediated ? 110 : 60,
+                                grid: { color: 'rgba(148, 163, 184, 0.05)' },
+                                ticks: { color: '#94a3b8' }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: '#94a3b8' }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#f1f5f9', boxWidth: 15 }
+                            },
+
+                            annotation: {
+                                annotations: {
+                                    line1: {
+                                        type: 'line',
+                                        yMin: max_capacity,
+                                        yMax: max_capacity,
+                                        borderColor: 'rgba(239, 68, 68, 0.7)',
+                                        borderWidth: 2,
+                                        label: {
+                                            content: 'Limite Tablespace (50MB)',
+                                            enabled: true,
+                                            position: 'end'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function triggerRemediation() {
+            max_capacity = 100.0;
+            is_remediated = true;
+            document.getElementById('metric-capacity').innerText = "100.00 MB";
+            document.getElementById('metric-capacity').classList.add('text-teal-400');
+
+            // Notification / Toast
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = "Oracle DBA Remediated: ALTER DATABASE DATAFILE ... RESIZE 100M exécuté !";
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 5000);
+
+
+            calculateAndPlot();
+        }
+
+        function switchTab(tabId) {
+            const tabs = ['dashboard', 'python-code', 'oracle-console'];
+            tabs.forEach(t => {
+                const element = document.getElementById(`tab-${t}`);
+                const btn = document.getElementById(`btn-tab-${t}`);
+                if (t === tabId) {
+                    element.classList.remove('hidden');
+                    btn.className = "px-5 py-3 text-sm font-medium border-b-2 border-teal-400 text-teal-400 transition-all flex items-center space-x-2";
+                } else {
+                    element.classList.add('hidden');
+                    btn.className = "px-5 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all flex items-center space-x-2";
+                }
+            });
+        }
+
+        sliderGrowth.addEventListener('input', calculateAndPlot);
+        sliderNoise.addEventListener('input', calculateAndPlot);
+
+        window.onload = function() {
+            const annotationPlugin = {
+                id: 'annotation',
+                beforeDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const yScale = chart.scales.y;
+                    const xScale = chart.scales.x;
+                    
+                    const yVal = yScale.getPixelForValue(max_capacity);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(xScale.left, yVal);
+                    ctx.lineTo(xScale.right, yVal);
+                    ctx.strokeStyle = is_remediated ? '#14b8a6' : 'rgba(239, 68, 68, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = is_remediated ? '#14b8a6' : 'rgba(239, 68, 68, 0.9)';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.fillText(`LIMITE TABLESPACE : ${max_capacity} MB`, xScale.right - 180, yVal - 8);
+                    ctx.restore();
+                }
+            };
+            Chart.register(annotationPlugin);
+            calculateAndPlot();
+        };
+    </script>
+</body>
+</html>
